@@ -74,6 +74,55 @@ for k,v in sorted(list(params.items())):
         name = k.split('_')[1]
         print(name,v.shape, params[name].shape)
 
+# save the old params
+import copy
+params_orig = copy.deepcopy(params)
+
+# Q 2.5 should be implemented in this file
+# you can do this before or after training the network. 
+
+eps = 1e-6
+for k,v in params.items():
+    if '_' in k: 
+        continue
+    # we have a real parameter!
+    # for each value inside the parameter
+    #   add epsilon
+    #   run the network
+    #   get the loss
+    #   compute derivative with central diffs
+    
+    vNumStore = np.zeros(v.shape)
+    with np.nditer([v, vNumStore], op_flags=['readwrite']) as it:
+        for w, wnum in it:
+            #compute right side loss
+            w += eps
+            h1 = forward(x,params,'layer1')
+            probs = forward(h1,params,'output',softmax)
+            lossRight, _ = compute_loss_and_acc(y, probs)
+            
+            #compute left side loss
+            w -= 2 * eps
+            h1 = forward(x,params,'layer1')
+            probs = forward(h1,params,'output',softmax)
+            lossLeft, _ = compute_loss_and_acc(y, probs)
+
+            #reset w and store loss
+            w += eps
+            wnum += (lossRight - lossLeft)/(2*eps)
+    params['grad_{}'.format(k)] = vNumStore
+
+total_error = 0
+for k in params.keys():
+    if 'grad_' in k:
+        # relative error
+        err = np.abs(params[k] - params_orig[k])/np.maximum(np.abs(params[k]),np.abs(params_orig[k]))
+        err = err.sum()
+        print('{} {:.2e}'.format(k, err))
+        total_error += err
+# should be less than 1e-4
+print('total {:.2e}'.format(total_error))
+
 # Q 2.4
 batches = get_random_batches(x,y,5)
 # print batch sizes
@@ -88,58 +137,27 @@ for itr in range(max_iters):
     total_loss = 0
     avg_acc = 0
     for xb,yb in batches:
-        pass
         # forward
+        h1 = forward(xb,params,'layer1')
+        probs = forward(h1,params,'output',softmax)
 
         # loss
         # be sure to add loss and accuracy to epoch totals 
-
+        loss, acc = compute_loss_and_acc(yb, probs)
+        total_loss += loss
+        avg_acc += xb.shape[0] * acc
+        
         # backward
+        delta1 = probs - yb
+        delta2 = backwards(delta1,params,'output',linear_deriv)
+        backwards(delta2,params,'layer1',sigmoid_deriv)
 
         # apply gradient
+        for k,v in sorted(list(params.items())):
+            if 'grad' in k:
+                name = k.split('_')[1]
+                params[name] -= learning_rate * v
 
-        ##########################
-        ##### your code here #####
-        ##########################
-
-        
+    avg_acc /= x.shape[0]
     if itr % 100 == 0:
         print("itr: {:02d} \t loss: {:.2f} \t acc : {:.2f}".format(itr,total_loss,avg_acc))
-
-
-# Q 2.5 should be implemented in this file
-# you can do this before or after training the network. 
-
-##########################
-##### your code here #####
-##########################
-
-# save the old params
-import copy
-params_orig = copy.deepcopy(params)
-
-eps = 1e-6
-for k,v in params.items():
-    if '_' in k: 
-        continue
-    # we have a real parameter!
-    # for each value inside the parameter
-    #   add epsilon
-    #   run the network
-    #   get the loss
-    #   compute derivative with central diffs
-    
-    ##########################
-    ##### your code here #####
-    ##########################
-
-total_error = 0
-for k in params.keys():
-    if 'grad_' in k:
-        # relative error
-        err = np.abs(params[k] - params_orig[k])/np.maximum(np.abs(params[k]),np.abs(params_orig[k]))
-        err = err.sum()
-        print('{} {:.2e}'.format(k, err))
-        total_error += err
-# should be less than 1e-4
-print('total {:.2e}'.format(total_error))
