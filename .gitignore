@@ -3,3 +3,4 @@ np
 __pycache__/nn.cpython-37.pyc
 __pycache__/q4.cpython-37.pyc
 __pycache__/util.cpython-37.pyc
+.DS_Store
