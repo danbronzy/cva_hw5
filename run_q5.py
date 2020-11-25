@@ -27,6 +27,7 @@ params = Counter()
 # initialize layers here
 initialize_weights(train_x.shape[1],hidden_size,params,'layer1')
 initialize_weights(hidden_size,hidden_size,params,'layer2')
+initialize_weights(hidden_size,hidden_size,params,'layer3')
 initialize_weights(hidden_size,train_x.shape[1],params,'output')
 
 avLossTrain = np.zeros((max_iters,1))
@@ -48,7 +49,8 @@ for itr in range(max_iters):
         # forward
         h1 = forward(xb,params,'layer1',relu)
         h2 = forward(h1,params,'layer2',relu)
-        probs = forward(h2,params,'output',sigmoid)
+        h3 = forward(h2,params,'layer3',relu)
+        probs = forward(h3,params,'output',sigmoid)
 
         # loss
         # be sure to add loss and accuracy to epoch totals 
@@ -58,8 +60,9 @@ for itr in range(max_iters):
         # backward
         delta1 = 2*(probs - xb) * probs * (1-probs)
         delta2 = backwards(delta1,params,'output',linear_deriv)
-        delta3 = backwards(delta2,params,'layer2',relu_deriv)
-        backwards(delta3,params,'layer1',relu_deriv)
+        delta3 = backwards(delta2,params,'layer3',relu_deriv)
+        delta4 = backwards(delta3,params,'layer2',relu_deriv)
+        backwards(delta4,params,'layer1',relu_deriv)
 
         # apply gradient
         for k,v in sorted(list(params.items())):
@@ -91,7 +94,8 @@ for im in ims:
     #eval on network
     h1 = forward(im,params,'layer1',relu)
     h2 = forward(h1,params,'layer2',relu)
-    probs = forward(h2,params,'output',sigmoid)
+    h3 = forward(h2,params,'layer3',relu)
+    probs = forward(h3,params,'output',sigmoid)
     res = np.vstack((res,probs))
 
 
@@ -119,9 +123,10 @@ for ind in range(valid_x.shape[0]):
 
     h1 = forward(real,params,'layer1',relu)
     h2 = forward(h1,params,'layer2',relu)
-    probs = forward(h2,params,'output',sigmoid)
+    h3 = forward(h2,params,'layer3',relu)
+    probs = forward(h3,params,'output',sigmoid)
 
     v = psnr(real, probs)
     psnrs[ind] = v
 
-np.mean(psnrs)
+print(np.mean(psnrs))
